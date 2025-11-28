@@ -1,21 +1,35 @@
 {
     "version": 2,
-    "rewrites": [
+    "builds": [
         {
-            "source": "/api/(.*)",
-            "destination": "/api/index"
+            "src": "api/index.ts",
+            "use": "@vercel/node"
         },
         {
-            "source": "/events",
-            "destination": "/api/index"
+            "src": "public/**",
+            "use": "@vercel/static"
+        }
+    ],
+    "routes": [
+        {
+            "src": "/events",
+            "dest": "/api/index"
         },
         {
-            "source": "/vehicles/(.*)",
-            "destination": "/api/index"
+            "src": "/vehicles/(.*)",
+            "dest": "/api/index"
         },
         {
-            "source": "/zones",
-            "destination": "/api/index"
+            "src": "/zones",
+            "dest": "/api/index"
+        },
+        {
+            "src": "/health",
+            "dest": "/api/index"
+        },
+        {
+            "src": "/(.*)",
+            "dest": "/public/$1"
         }
     ]
 }
