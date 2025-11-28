@@ -19,7 +19,16 @@ export const buildApp = () => {
         prefix: '/',
     });
 
+    app.get('/zones', async () => {
+        return ZONES;
+    });
+
+    app.get('/health', async () => {
+        return { status: 'ok', timestamp: new Date().toISOString() };
+    });
+
     app.register(eventRoutes, { vehicleManager });
+    app.register(vehicleRoutes, { vehicleManager });
 
     return app;
 };
