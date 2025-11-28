@@ -3,19 +3,19 @@
     "rewrites": [
         {
             "source": "/api/(.*)",
-            "destination": "/api/serverless"
+            "destination": "/api/index"
         },
         {
             "source": "/events",
-            "destination": "/api/serverless"
+            "destination": "/api/index"
         },
         {
             "source": "/vehicles/(.*)",
-            "destination": "/api/serverless"
+            "destination": "/api/index"
         },
         {
             "source": "/zones",
-            "destination": "/api/serverless"
+            "destination": "/api/index"
         }
     ]
 }

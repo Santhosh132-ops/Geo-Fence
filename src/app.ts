@@ -30,3 +30,7 @@ export const buildApp = () => {
 
     return app;
 };
+
+export default buildApp;
+
+
