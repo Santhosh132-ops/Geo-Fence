@@ -2,19 +2,7 @@
     "version": 2,
     "rewrites": [
         {
-            "source": "/api/(.*)",
-            "destination": "/api/index"
-        },
-        {
-            "source": "/events",
-            "destination": "/api/index"
-        },
-        {
-            "source": "/vehicles/(.*)",
-            "destination": "/api/index"
-        },
-        {
-            "source": "/zones",
+            "source": "/(.*)",
             "destination": "/api/index"
         }
     ]
