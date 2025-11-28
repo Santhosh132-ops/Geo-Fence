@@ -12,7 +12,7 @@ export async function vehicleRoutes(app: FastifyInstance, options: { vehicleMana
             })
         }
     }, async (request, reply) => {
-        const { id } = request.params;
+        const { id } = request.params as { id: string };
         const status = vehicleManager.getVehicleStatus(id);
 
         if (!status) {

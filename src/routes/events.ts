@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { Type } from '@sinclair/typebox';
 import { VehicleManager } from '../domain/vehicleManager';
+import { VehicleEvent } from '../domain/types';
 
 export async function eventRoutes(app: FastifyInstance, options: { vehicleManager: VehicleManager }) {
     const { vehicleManager } = options;
@@ -17,7 +18,7 @@ export async function eventRoutes(app: FastifyInstance, options: { vehicleManage
             })
         }
     }, async (request, reply) => {
-        const event = request.body;
+        const event = request.body as VehicleEvent;
         const result = vehicleManager.processEvent(event);
 
         // Log transition if any
