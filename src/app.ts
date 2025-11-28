@@ -13,24 +13,13 @@ export const buildApp = () => {
 
     const vehicleManager = new VehicleManager(ZONES);
 
-    // Serve static files (Local Dev Only)
-    if (!process.env.VERCEL) {
-        app.register(require('@fastify/static'), {
-            root: path.join(__dirname, '../'),
-            prefix: '/',
-        });
-    }
-
-    app.get('/zones', async () => {
-        return ZONES;
-    });
-
-    app.get('/health', async () => {
-        return { status: 'ok', timestamp: new Date().toISOString() };
+    // Serve static files (Standard Node.js)
+    app.register(require('@fastify/static'), {
+        root: path.join(process.cwd(), 'public'),
+        prefix: '/',
     });
 
     app.register(eventRoutes, { vehicleManager });
-    app.register(vehicleRoutes, { vehicleManager });
 
     return app;
 };
