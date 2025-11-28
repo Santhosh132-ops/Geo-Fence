@@ -2,7 +2,7 @@
     "version": 2,
     "functions": {
         "api/index.ts": {
-            "runtime": "@vercel/node@3.0.7"
+            "runtime": "nodejs20.x"
         }
     },
     "rewrites": [
@@ -21,17 +21,6 @@
         {
             "source": "/health",
             "destination": "/api/index"
-        }
-    ],
-    "headers": [
-        {
-            "source": "/public/(.*)",
-            "headers": [
-                {
-                    "key": "Cache-Control",
-                    "value": "public, max-age=31536000, immutable"
-                }
-            ]
         }
     ]
 }
