@@ -1,36 +1,21 @@
 {
     "version": 2,
-    "builds": [
+    "rewrites": [
         {
-            "src": "api/index.ts",
-            "use": "@vercel/node"
+            "source": "/events",
+            "destination": "/api/index"
+        },
+        {
+            "source": "/vehicles/(.*)",
+            "destination": "/api/index"
+        },
+        {
+            "source": "/zones",
+            "destination": "/api/index"
+        },
+        {
+            "source": "/health",
+            "destination": "/api/index"
         }
-    ],
-    "routes": [
-        {
-            "src": "/events",
-            "dest": "/api/index"
-        },
-        {
-            "src": "/vehicles/(.*)",
-            "dest": "/api/index"
-        },
-        {
-            "src": "/zones",
-            "dest": "/api/index"
-        },
-        {
-            "src": "/health",
-            "dest": "/api/index"
-        },
-        {
-            "src": "/(.*\\.(js|css|html|png|jpg|ico))",
-            "dest": "/public/$1"
-        },
-        {
-            "src": "/",
-            "dest": "/public/index.html"
-        }
-    ],
-    "outputDirectory": "public"
+    ]
 }
