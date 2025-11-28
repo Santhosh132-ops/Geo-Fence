@@ -1,5 +1,7 @@
 import { buildApp } from './app';
 
+// Force Vercel Rebuild
+
 const start = async () => {
     const app = buildApp();
     try {
