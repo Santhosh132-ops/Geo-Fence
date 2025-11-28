@@ -2,6 +2,22 @@
     "version": 2,
     "rewrites": [
         {
+            "source": "/api/(.*)",
+            "destination": "/api/serverless"
+        },
+        {
+            "source": "/events",
+            "destination": "/api/serverless"
+        },
+        {
+            "source": "/vehicles/(.*)",
+            "destination": "/api/serverless"
+        },
+        {
+            "source": "/zones",
+            "destination": "/api/serverless"
+        },
+        {
             "source": "/(.*)",
             "destination": "/api/serverless"
         }
