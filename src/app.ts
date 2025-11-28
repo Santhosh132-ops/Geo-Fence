@@ -25,6 +25,10 @@ export const buildApp = () => {
         return ZONES;
     });
 
+    app.get('/health', async () => {
+        return { status: 'ok', timestamp: new Date().toISOString() };
+    });
+
     app.register(eventRoutes, { vehicleManager });
     app.register(vehicleRoutes, { vehicleManager });
 
