@@ -16,10 +16,6 @@
         {
             "source": "/zones",
             "destination": "/api/serverless"
-        },
-        {
-            "source": "/(.*)",
-            "destination": "/api/serverless"
         }
     ]
 }
