@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geofence Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <h1>Geofence Monitor</h1>
+                <p class="subtitle">Real-time Vehicle Tracking System</p>
+            </div>
+            <div class="header-right">
+                <div class="status-indicator" id="connectionStatus">System Online</div>
+            </div>
+        </header>
+
+        <main class="dashboard-grid">
+            <!-- Left Column: Map -->
+            <section class="card glass map-card">
+                <div id="map"></div>
+                <div class="map-overlay">
+                    <span class="badge">Live Map</span>
+                    <div id="routeProgress" class="route-overlay" style="display: none;">
+                        <!-- Route steps will be injected here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Column: Controls & Info -->
+            <div class="sidebar">
+                <!-- Combined Status & Controls -->
+                <section class="card glass compact-card">
+                    <div class="card-header">
+                        <h2>Vehicle Status</h2>
+                        <div class="input-group compact">
+                            <input type="text" id="vehicleInput" value="taxi-001" placeholder="Vehicle ID">
+                        </div>
+                    </div>
+
+                    <div class="vehicle-info-grid">
+                        <div class="info-item">
+                            <span class="label">ID</span>
+                            <span class="value small" id="vehicleIdDisplay">--</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Zone</span>
+                            <span class="value small highlight" id="currentZone">--</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">State</span>
+                            <span class="value small" id="currentState">--</span>
+                        </div>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <!-- Route Planner -->
+                    <div class="route-planner">
+                        <h3>Route Planner</h3>
+                        <div class="input-group compact">
+                            <select id="startSelect" class="select-input">
+                                <option value="" disabled selected>Start Point</option>
+                            </select>
+                        </div>
+                        <div class="input-group compact">
+                            <select id="destSelect" class="select-input">
+                                <option value="" disabled selected>Destination</option>
+                            </select>
+                        </div>
+                        <button onclick="startCustomDrive()" class="btn success full-width" style="margin-top: 5px;">
+                            🚀 Start Trip
+                        </button>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <div class="button-grid compact-grid">
+                        <button onclick="startDrive()" class="btn success full-width">
+                            ▶ Start Auto-Drive
+                        </button>
+                        <button onclick="stopDrive()" class="btn danger full-width" style="display: none;" id="stopBtn">
+                            ⏹ Stop Drive
+                        </button>
+
+                        <div class="divider full-width"></div>
+
+                        <button onclick="simulateLocation(51.5033, -0.1195)" class="btn secondary">
+                            London Eye
+                        </button>
+                        <button onclick="simulateLocation(51.5045, -0.0865)" class="btn secondary">
+                            The Shard
+                        </button>
+                        <button onclick="simulateLocation(51.5081, -0.0759)" class="btn accent">
+                            Tower of London
+                        </button>
+                        <button onclick="simulateLocation(51.5194, -0.1270)" class="btn accent">
+                            British Museum
+                        </button>
+                        <button onclick="simulateLocation(51.4993, -0.1273)" class="btn accent">
+                            Westminster Abbey
+                        </button>
+                        <button onclick="simulateLocation(51.5138, -0.0984)" class="btn accent">
+                            St Pauls
+                        </button>
+                        <button onclick="simulateLocation(51.5015, -0.1415)" class="btn primary">
+                            Buckingham Palace
+                        </button>
+                        <button onclick="simulateLocation(51.5070, -0.1650)" class="btn primary">
+                            Hyde Park
+                        </button>
+                        <button onclick="simulateLocation(51.5100, -0.1250)" class="btn primary">
+                            City Center
+                        </button>
+                        <button onclick="simulateLocation(51.4000, -0.3000)" class="btn danger full-width">
+                            Exit All Zones
+                        </button>
+                    </div>
+                </section>
+
+                <!-- Terminal Card -->
+                <section class="card glass terminal-card compact-terminal">
+                    <h2>API Terminal</h2>
+                    <div class="terminal-window">
+                        <div class="terminal-body">
+                            <div class="input-line">
+                                <span class="prompt">$</span>
+                                <textarea id="terminalInput"
+                                    placeholder="curl -X POST http://localhost:3000/events..."></textarea>
+                            </div>
+                            <pre id="terminalOutput"></pre>
+                        </div>
+                    </div>
+                    <button onclick="runTerminal()" class="btn primary full-width small-btn">Run Command</button>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="app.js"></script>
+</body>
+
+</html>
