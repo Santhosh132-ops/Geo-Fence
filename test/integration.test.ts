@@ -32,8 +32,8 @@ describe('Geofence Service', () => {
         });
         expect(res2.statusCode).toBe(200);
         expect(res2.json().status.state).toBe('inside');
-        expect(res2.json().status.currentZoneId).toBe('buckingham_palace');
-        expect(res2.json().transition).toContain('entered zone buckingham_palace');
+        expect(res2.json().status.currentZoneId).toBe('palace');
+        expect(res2.json().transition).toContain('entered zone palace');
 
         // 3. Query status
         const res3 = await app.inject({
@@ -41,6 +41,6 @@ describe('Geofence Service', () => {
             url: '/vehicles/v1'
         });
         expect(res3.statusCode).toBe(200);
-        expect(res3.json().currentZoneId).toBe('buckingham_palace');
+        expect(res3.json().currentZoneId).toBe('palace');
     });
 });
