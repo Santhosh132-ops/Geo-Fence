@@ -13,10 +13,10 @@ export const buildApp = () => {
 
     const vehicleManager = new VehicleManager(ZONES);
 
-    // Serve static files (Local Dev Only - Vercel handles this natively)
+    // Serve static files (Local Dev Only)
     if (!process.env.VERCEL) {
         app.register(require('@fastify/static'), {
-            root: path.join(__dirname, '../public'),
+            root: path.join(__dirname, '../'),
             prefix: '/',
         });
     }
