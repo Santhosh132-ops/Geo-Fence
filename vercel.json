@@ -4,10 +4,6 @@
         {
             "src": "api/index.ts",
             "use": "@vercel/node"
-        },
-        {
-            "src": "public/**",
-            "use": "@vercel/static"
         }
     ],
     "routes": [
@@ -28,8 +24,13 @@
             "dest": "/api/index"
         },
         {
-            "src": "/(.*)",
+            "src": "/(.*\\.(js|css|html|png|jpg|ico))",
             "dest": "/public/$1"
+        },
+        {
+            "src": "/",
+            "dest": "/public/index.html"
         }
-    ]
+    ],
+    "outputDirectory": "public"
 }
