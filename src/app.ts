@@ -13,13 +13,13 @@ export const buildApp = () => {
 
     const vehicleManager = new VehicleManager(ZONES);
 
-    // Serve static files (Universal)
-    // On Vercel, process.cwd() is the task root, and 'public' should be included.
-    const publicPath = path.join(process.cwd(), 'public');
-    app.register(require('@fastify/static'), {
-        root: publicPath,
-        prefix: '/',
-    });
+    // Serve static files (Local Dev Only - Vercel handles this natively)
+    if (!process.env.VERCEL) {
+        app.register(require('@fastify/static'), {
+            root: path.join(__dirname, '../public'),
+            prefix: '/',
+        });
+    }
 
     app.get('/zones', async () => {
         return ZONES;
