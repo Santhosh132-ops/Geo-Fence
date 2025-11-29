@@ -475,6 +475,29 @@ window.addEventListener('online', async () => {
 ```
 
 ---
+ 
+ ## 🗺️ Routing Engine Enhancements
+ 
+ ### Current Implementation
+ - **Mock Router**: Uses a predefined graph of "real road" segments between major landmarks
+ - **Graph Search**: BFS algorithm to find paths between any two zones
+ - **Interpolation**: Linear interpolation for smooth movement
+ 
+ ### Proposed Improvements
+ 
+ **1. Expanded Road Graph**
+ - Add more intermediate nodes (intersections) for higher fidelity
+ - Cover more streets beyond the main tourist loop
+ 
+ **2. Weighted Pathfinding (A*)**
+ - Implement A* algorithm to find the *shortest* path based on distance
+ - Account for one-way streets and traffic rules
+ 
+ **3. Self-Hosted OSRM**
+ - Deploy a full OSRM instance using Docker for true global routing
+ - Removes dependency on public APIs while maintaining full accuracy
+ 
+ ---
 
 ## 🔍 Monitoring & Observability
 

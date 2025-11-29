@@ -19,6 +19,11 @@ When a vehicle sends its location, we use a mathematical formula called **Ray-Ca
 We keep a record of every vehicle in the system's memory.
 *   **Enter Event**: If a car was *outside* 5 seconds ago but is *inside* now -> It just **Entered**.
 *   **Exit Event**: If a car was *inside* 5 seconds ago but is *outside* now -> It just **Exited**.
+ 
+ ### 4. The Navigator (Custom Routing Engine)
+ We built a custom "Mini-GPS" inside the server to ensure the demo works 100% of the time, even without internet.
+ *   **Graph Search**: The city is mapped as a network of connected zones (nodes) and roads (edges). When you select a route, we use a **Breadth-First Search (BFS)** algorithm to find the path through the real streets.
+ *   **Interpolation**: To make the car move smoothly instead of teleporting, we calculate hundreds of tiny intermediate points between the main road markers. This creates a fluid, realistic animation.
 
 ## Production Grade Features
 We made this "Production Ready" by adding:

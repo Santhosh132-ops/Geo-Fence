@@ -15,7 +15,10 @@ This service processes vehicle location events and determines whether vehicles a
 - **Real-time Geofence Detection**: Accurate point-in-polygon algorithm for zone boundary detection
 - **Interactive Map Dashboard**: Built with Leaflet.js showing live vehicle positions and zone boundaries
 - **Smart Route Planning**: Point-to-point navigation with automatic intermediate zone detection
-- **Auto-Drive Simulation**: Realistic vehicle movement along actual London roads using OSRM routing
+- **Custom Mock OSRM Server**: Built-in routing engine that finds "real road" paths between zones without external dependencies
+- **Bidirectional Graph Search**: Intelligent pathfinding that works in any direction across the city
+- **Smooth Interpolation**: Physics-based animation engine for realistic vehicle movement
+- **Auto-Drive Simulation**: Realistic vehicle movement along actual London roads
 - **Route Progress Tracking**: Visual feedback showing completed, current, and upcoming zones
 - **Robust Zone Transitions**: Debounce logic to handle GPS jitter and ensure accurate state changes
 - **RESTful API**: Clean endpoints for event processing and vehicle status queries
