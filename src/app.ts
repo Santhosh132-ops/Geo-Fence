@@ -30,6 +30,12 @@ export const buildApp = () => {
     app.register(eventRoutes, { vehicleManager });
     app.register(vehicleRoutes, { vehicleManager });
 
+    // Routing proxy endpoint
+    app.post('/api/route', async (request: any, reply) => {
+        const { routeHandler } = await import('./routes/routing');
+        return routeHandler(request, reply);
+    });
+
     return app;
 };
 

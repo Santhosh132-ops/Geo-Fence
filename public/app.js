@@ -342,28 +342,27 @@ function clearRouteProgress() {
 
 // OSRM Routing & Animation
 async function getRoute(waypoints) {
-    // Format coordinates for OSRM (lng,lat)
-    const coords = waypoints.map(p => `${p.lng},${p.lat}`).join(';');
-    // Use 'driving' profile for roads only
-    const url = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`;
-
     try {
-        const response = await fetch(url);
+        // Call backend proxy instead of OSRM directly
+        const response = await fetch(`${API_URL}/api/route`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ waypoints })
+        });
+
         const data = await response.json();
 
-        if (data.routes && data.routes.length > 0) {
-            return data.routes[0].geometry.coordinates.map(c => ({ lat: c[1], lng: c[0] }));
+        if (data.success && data.route) {
+            showToast('Route calculated successfully', 'success');
+            return data.route;
         }
 
-        // Fallback to straight-line route
-        console.warn('OSRM returned no routes, using straight-line fallback');
-        return createStraightLineRoute(waypoints);
+        showToast('Could not calculate route', 'warning');
+        return null;
     } catch (error) {
-        console.error('Routing error (likely CORS):', error);
-        showToast('Using direct route (OSRM unavailable)', 'warning');
-
-        // Fallback: create interpolated straight-line route
-        return createStraightLineRoute(waypoints);
+        console.error('Routing error:', error);
+        showToast('Routing service unavailable', 'warning');
+        return null;
     }
 }
 
