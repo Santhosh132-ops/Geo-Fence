@@ -354,12 +354,38 @@ async function getRoute(waypoints) {
         if (data.routes && data.routes.length > 0) {
             return data.routes[0].geometry.coordinates.map(c => ({ lat: c[1], lng: c[0] }));
         }
-        return null;
+
+        // Fallback to straight-line route
+        console.warn('OSRM returned no routes, using straight-line fallback');
+        return createStraightLineRoute(waypoints);
     } catch (error) {
-        console.error('Routing error:', error);
-        showToast('Failed to calculate route', 'warning');
-        return null;
+        console.error('Routing error (likely CORS):', error);
+        showToast('Using direct route (OSRM unavailable)', 'warning');
+
+        // Fallback: create interpolated straight-line route
+        return createStraightLineRoute(waypoints);
     }
+}
+
+// Fallback function to create interpolated straight-line route
+function createStraightLineRoute(waypoints) {
+    const route = [];
+    const pointsPerSegment = 50; // Interpolation density
+
+    for (let i = 0; i < waypoints.length - 1; i++) {
+        const start = waypoints[i];
+        const end = waypoints[i + 1];
+
+        for (let j = 0; j <= pointsPerSegment; j++) {
+            const ratio = j / pointsPerSegment;
+            route.push({
+                lat: start.lat + (end.lat - start.lat) * ratio,
+                lng: start.lng + (end.lng - start.lng) * ratio
+            });
+        }
+    }
+
+    return route;
 }
 
 function getZoneCenter(zone) {
