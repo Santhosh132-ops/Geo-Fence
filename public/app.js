@@ -46,9 +46,13 @@ function initMap() {
 }
 
 async function fetchZones() {
+    console.log('fetchZones() called');
     try {
+        console.log('Fetching from:', `${API_URL}/zones`);
         const response = await fetch(`${API_URL}/zones`);
+        console.log('Response status:', response.status);
         const zones = await response.json();
+        console.log('Zones loaded:', zones.length, 'zones');
         availableZones = zones;
 
         // Populate Dropdowns
@@ -118,9 +122,10 @@ async function fetchStatus(vehicleId) {
 
     try {
         const response = await fetch(`${API_URL}/vehicles/${vehicleId}`);
+        const data = await response.json();
 
-        // Handle 404 - vehicle doesn't exist yet
-        if (response.status === 404) {
+        // Handle "not_found" status (vehicle doesn't exist yet)
+        if (data.status === 'not_found') {
             vehicleIdDisplay.textContent = vehicleId;
             currentZoneDisplay.textContent = '--';
             currentStateDisplay.textContent = 'No data yet';
@@ -128,7 +133,6 @@ async function fetchStatus(vehicleId) {
         }
 
         if (response.ok) {
-            const data = await response.json();
             updateUI(data);
         }
     } catch (error) {
@@ -367,34 +371,54 @@ async function getRoute(waypoints) {
             return data.route;
         }
 
-        showToast('Could not calculate route', 'warning');
+        console.warn('Route calculation failed:', data);
+        // showToast('Could not calculate route', 'warning'); // Suppressed in favor of fallback message
         return null;
     } catch (error) {
         console.error('Routing error:', error);
-        showToast('Routing service unavailable', 'warning');
+        // showToast('Routing service unavailable', 'warning'); // Suppressed in favor of fallback message
         return null;
     }
 }
 
-// Fallback function to create interpolated straight-line route
-function createStraightLineRoute(waypoints) {
+// Fallback function to create Manhattan (City Grid) route
+function createManhattanRoute(waypoints) {
     const route = [];
-    const pointsPerSegment = 50; // Interpolation density
+    const pointsPerSegment = 25; // Interpolation density
 
     for (let i = 0; i < waypoints.length - 1; i++) {
         const start = waypoints[i];
         const end = waypoints[i + 1];
 
-        for (let j = 0; j <= pointsPerSegment; j++) {
-            const ratio = j / pointsPerSegment;
-            route.push({
-                lat: start.lat + (end.lat - start.lat) * ratio,
-                lng: start.lng + (end.lng - start.lng) * ratio
-            });
+        // Calculate "Corner" point (L-shape)
+        // We randomly choose between Horizontal-first or Vertical-first to vary the path
+        const coinFlip = (start.lat + start.lng + end.lat + end.lng) % 2 > 1; // Deterministic pseudo-random
+
+        let corner;
+        if (coinFlip) {
+            corner = { lat: start.lat, lng: end.lng }; // Horizontal then Vertical
+        } else {
+            corner = { lat: end.lat, lng: start.lng }; // Vertical then Horizontal
         }
+
+        // Segment 1: Start -> Corner
+        interpolateSegment(start, corner, pointsPerSegment, route);
+
+        // Segment 2: Corner -> End
+        interpolateSegment(corner, end, pointsPerSegment, route);
     }
 
     return route;
+}
+
+function interpolateSegment(p1, p2, steps, outputArray) {
+    for (let j = 0; j <= steps; j++) {
+        const ratio = j / steps;
+        outputArray.push({
+            lat: p1.lat + (p2.lat - p1.lat) * ratio,
+            lng: p1.lng + (p2.lng - p1.lng) * ratio
+        });
+    }
 }
 
 function getZoneCenter(zone) {
@@ -502,27 +526,71 @@ async function startDrive() {
 }
 
 async function driveRoute(waypoints) {
-    if (isDriving) return;
+    if (isDriving) {
+        console.warn('Already driving, ignoring request');
+        return;
+    }
 
     isDriving = true;
     stopBtn.style.display = 'block';
+    console.log('Drive started, vehicle ID:', vehicleInput.value);
 
     // Stop polling immediately to prevent stale updates
     if (pollingInterval) clearInterval(pollingInterval);
 
     showToast('Calculating Road Route...', 'info');
 
-    // Get real route from OSRM
+    // Get real route from OSRM (or MockRouter)
     const routePoints = await getRoute(waypoints);
 
     if (!routePoints) {
-        isDriving = false;
-        stopBtn.style.display = 'none';
-        clearRouteProgress();
-        startPolling(vehicleInput.value); // Resume polling if failed
+        console.warn('Backend routing failed, using Manhattan fallback');
+        showToast('Routing service unavailable. Using city grid fallback.', 'warning');
+
+        // Fallback to Manhattan Routing
+        const fallbackRoute = createManhattanRoute(waypoints);
+
+        // Interpolate fallback for smoothness
+        const smoothFallback = interpolateRoute(fallbackRoute, 20);
+
+        animateRoute(smoothFallback);
         return;
     }
 
+    console.log('Route received, starting animation with', routePoints.length, 'points');
+
+    // Interpolate real route too (MockRouter might be sparse)
+    const smoothRoute = interpolateRoute(routePoints, 10); // Less density needed if points are already good
+
+    animateRoute(smoothRoute);
+}
+
+// Helper to smooth out the path (Linear Interpolation)
+function interpolateRoute(points, density) {
+    if (!points || points.length < 2) return points || [];
+    const smoothed = [];
+    for (let i = 0; i < points.length - 1; i++) {
+        const start = points[i];
+        const end = points[i + 1];
+
+        // Always add start point
+        smoothed.push(start);
+
+        // Add intermediate points
+        for (let j = 1; j < density; j++) {
+            const ratio = j / density;
+            smoothed.push({
+                lat: start.lat + (end.lat - start.lat) * ratio,
+                lng: start.lng + (end.lng - start.lng) * ratio
+            });
+        }
+    }
+    // Add final point
+    smoothed.push(points[points.length - 1]);
+    return smoothed;
+}
+
+function animateRoute(routePoints) {
     // Draw route on map
     if (routePolyline) map.removeLayer(routePolyline);
     routePolyline = L.polyline(routePoints, { color: '#ec4899', weight: 4, opacity: 0.7 }).addTo(map);
@@ -545,8 +613,8 @@ async function driveRoute(waypoints) {
         // Update marker visually immediately
         updateMarker(point);
 
-        // Send API update (throttled to every 2nd point to catch small zones)
-        if (index % 2 === 0) {
+        // Send API update (throttled to every 5th point to reduce load)
+        if (index % 5 === 0) {
             simulateLocation(point.lat, point.lng);
         }
 
@@ -634,202 +702,8 @@ if (vehicleInput.value) {
     startPolling(vehicleInput.value);
 }
 
-    });
-
-// Sort intermediate zones by distance from start
-intermediateZones.sort((a, b) => {
-    const distA = getDistance(startPoint, getZoneCenter(a));
-    const distB = getDistance(startPoint, getZoneCenter(b));
-    return distA - distB;
-});
-
-return intermediateZones;
-}
-
-async function startCustomDrive() {
-    const startId = startSelect.value;
-    const destId = destSelect.value;
-
-    if (!startId || !destId) {
-        showToast('Please select Start and Destination', 'warning');
-        return;
-    }
-
-    if (startId === destId) {
-        showToast('Start and Destination cannot be the same', 'warning');
-        return;
-    }
-
-    const startZone = availableZones.find(z => z.id === startId);
-    const destZone = availableZones.find(z => z.id === destId);
-
-    if (!startZone || !destZone) return;
-
-    // Use the reusable logic
-    const intermediateZones = calculateIntermediateZones(startZone, destZone);
-
-    // Include intermediate zones in the route list
-    const routeZones = [startZone, ...intermediateZones, destZone];
-
-    // Initialize Progress Overlay
-    initRouteProgress(routeZones);
-
-    // Use ALL zones as waypoints to force the route through them
-    const waypoints = routeZones.map(getZoneCenter);
-
-    showToast(`Route: ${startZone.name} -> ${intermediateZones.map(z => z.name).join(' -> ')} -> ${destZone.name}`, 'info');
-
-    await driveRoute(waypoints);
-}
-
-async function startDrive() {
-    // Grand Tour
-    const tourZones = [
-        'palace', 'abbey', 'eye', 'stpauls', 'tower', 'shard', 'museum', 'hydepark', 'palace'
-    ].map(id => availableZones.find(z => z.id === id)).filter(Boolean);
-
-    initRouteProgress(tourZones);
-
-    // Use Centroids for strict alignment
-    const waypoints = tourZones.map(getZoneCenter);
-
-    await driveRoute(waypoints);
-}
-
-async function driveRoute(waypoints) {
-    if (isDriving) return;
-
-    isDriving = true;
-    stopBtn.style.display = 'block';
-
-    // Stop polling immediately to prevent stale updates
-    if (pollingInterval) clearInterval(pollingInterval);
-
-    showToast('Calculating Road Route...', 'info');
-
-    // Get real route from OSRM
-    const routePoints = await getRoute(waypoints);
-
-    if (!routePoints) {
-        isDriving = false;
-        stopBtn.style.display = 'none';
-        clearRouteProgress();
-        startPolling(vehicleInput.value); // Resume polling if failed
-        return;
-    }
-
-    // Draw route on map
-    if (routePolyline) map.removeLayer(routePolyline);
-    routePolyline = L.polyline(routePoints, { color: '#ec4899', weight: 4, opacity: 0.7 }).addTo(map);
-    map.fitBounds(routePolyline.getBounds(), { padding: [50, 50] });
-
-    showToast('Starting Drive', 'success');
-
-    // Animation Loop
-    let index = 0;
-
-    driveInterval = setInterval(() => {
-        if (index >= routePoints.length) {
-            stopDrive();
-            showToast('Destination Reached', 'success');
-            return;
-        }
-
-        const point = routePoints[index];
-
-        // Update marker visually immediately
-        updateMarker(point);
-
-        // Send API update (throttled to every 2nd point to catch small zones)
-        if (index % 2 === 0) {
-            simulateLocation(point.lat, point.lng);
-        }
-
-        index++;
-    }, 100); // 100ms per point
-}
-
-function stopDrive() {
-    isDriving = false;
-    if (driveInterval) {
-        clearInterval(driveInterval);
-        driveInterval = null;
-    }
-    stopBtn.style.display = 'none';
-    if (routePolyline) {
-        map.removeLayer(routePolyline);
-        routePolyline = null;
-    }
-    clearRouteProgress();
-    // Resume normal polling
-    startPolling(vehicleInput.value);
-}
-
-// Terminal Logic
-async function runTerminal() {
-    const input = terminalInput.value.trim();
-    if (!input) return;
-
-    terminalOutput.textContent = '> Running...';
-
-    try {
-        // Simple parser for curl commands
-        let method = 'GET';
-        let url = '';
-        let body = null;
-
-        // Extract URL
-        const urlMatch = input.match(/http:\/\/[^\s]+/);
-        if (urlMatch) {
-            url = urlMatch[0];
-        } else {
-            throw new Error('Invalid URL. Must start with http://');
-        }
-
-        // Extract Method
-        const methodMatch = input.match(/-X\s+([A-Z]+)/);
-        if (methodMatch) {
-            method = methodMatch[1];
-        }
-
-        // Extract Body
-        const bodyMatch = input.match(/-d\s+'([^']+)'/);
-        if (bodyMatch) {
-            body = bodyMatch[1];
-        }
-
-        const options = {
-            method,
-            headers: { 'Content-Type': 'application/json' }
-        };
-
-        if (body) {
-            options.body = body;
-        }
-
-        const response = await fetch(url, options);
-        const data = await response.json();
-
-        terminalOutput.textContent = JSON.stringify(data, null, 2);
-
-        // If it was an event update, refresh UI
-        if (url.includes('/events')) {
-            if (data.status) updateUI(data.status);
-            if (data.transition) showToast(data.transition, 'info');
-        }
-
-    } catch (error) {
-        terminalOutput.textContent = `Error: ${error.message}`;
-    }
-}
-
-// Initial load
-initMap();
-// Don't start polling automatically - wait for first event
-
 vehicleInput.addEventListener('change', () => {
-    // Don't auto-start polling on input change
-    vehicleIdDisplay.textContent = vehicleInput.value;
+    startPolling(vehicleInput.value);
 });
 // Taxi selection
 function selectTaxi(id) {
@@ -840,8 +714,7 @@ function selectTaxi(id) {
     if (vehicleMarker) { map.removeLayer(vehicleMarker); vehicleMarker = null; }
     vehicleIdDisplay.textContent = id;
     currentZoneDisplay.textContent = '--';
-    currentStateDisplay.textContent = 'No data yet';
-    // Don't start polling until first event is sent
-    if (pollingInterval) clearInterval(pollingInterval);
+    currentStateDisplay.textContent = '--';
+    startPolling(id);
     showToast('Selected ' + id, 'info');
 }

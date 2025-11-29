@@ -16,7 +16,7 @@ export async function vehicleRoutes(app: FastifyInstance, options: { vehicleMana
         const status = vehicleManager.getVehicleStatus(id);
 
         if (!status) {
-            return reply.status(404).send({ error: 'Vehicle not found' });
+            return reply.send({ status: 'not_found' });
         }
 
         return status;
