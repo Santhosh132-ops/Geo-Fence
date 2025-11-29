@@ -634,8 +634,202 @@ if (vehicleInput.value) {
     startPolling(vehicleInput.value);
 }
 
-vehicleInput.addEventListener('change', () => {
+    });
+
+// Sort intermediate zones by distance from start
+intermediateZones.sort((a, b) => {
+    const distA = getDistance(startPoint, getZoneCenter(a));
+    const distB = getDistance(startPoint, getZoneCenter(b));
+    return distA - distB;
+});
+
+return intermediateZones;
+}
+
+async function startCustomDrive() {
+    const startId = startSelect.value;
+    const destId = destSelect.value;
+
+    if (!startId || !destId) {
+        showToast('Please select Start and Destination', 'warning');
+        return;
+    }
+
+    if (startId === destId) {
+        showToast('Start and Destination cannot be the same', 'warning');
+        return;
+    }
+
+    const startZone = availableZones.find(z => z.id === startId);
+    const destZone = availableZones.find(z => z.id === destId);
+
+    if (!startZone || !destZone) return;
+
+    // Use the reusable logic
+    const intermediateZones = calculateIntermediateZones(startZone, destZone);
+
+    // Include intermediate zones in the route list
+    const routeZones = [startZone, ...intermediateZones, destZone];
+
+    // Initialize Progress Overlay
+    initRouteProgress(routeZones);
+
+    // Use ALL zones as waypoints to force the route through them
+    const waypoints = routeZones.map(getZoneCenter);
+
+    showToast(`Route: ${startZone.name} -> ${intermediateZones.map(z => z.name).join(' -> ')} -> ${destZone.name}`, 'info');
+
+    await driveRoute(waypoints);
+}
+
+async function startDrive() {
+    // Grand Tour
+    const tourZones = [
+        'palace', 'abbey', 'eye', 'stpauls', 'tower', 'shard', 'museum', 'hydepark', 'palace'
+    ].map(id => availableZones.find(z => z.id === id)).filter(Boolean);
+
+    initRouteProgress(tourZones);
+
+    // Use Centroids for strict alignment
+    const waypoints = tourZones.map(getZoneCenter);
+
+    await driveRoute(waypoints);
+}
+
+async function driveRoute(waypoints) {
+    if (isDriving) return;
+
+    isDriving = true;
+    stopBtn.style.display = 'block';
+
+    // Stop polling immediately to prevent stale updates
+    if (pollingInterval) clearInterval(pollingInterval);
+
+    showToast('Calculating Road Route...', 'info');
+
+    // Get real route from OSRM
+    const routePoints = await getRoute(waypoints);
+
+    if (!routePoints) {
+        isDriving = false;
+        stopBtn.style.display = 'none';
+        clearRouteProgress();
+        startPolling(vehicleInput.value); // Resume polling if failed
+        return;
+    }
+
+    // Draw route on map
+    if (routePolyline) map.removeLayer(routePolyline);
+    routePolyline = L.polyline(routePoints, { color: '#ec4899', weight: 4, opacity: 0.7 }).addTo(map);
+    map.fitBounds(routePolyline.getBounds(), { padding: [50, 50] });
+
+    showToast('Starting Drive', 'success');
+
+    // Animation Loop
+    let index = 0;
+
+    driveInterval = setInterval(() => {
+        if (index >= routePoints.length) {
+            stopDrive();
+            showToast('Destination Reached', 'success');
+            return;
+        }
+
+        const point = routePoints[index];
+
+        // Update marker visually immediately
+        updateMarker(point);
+
+        // Send API update (throttled to every 2nd point to catch small zones)
+        if (index % 2 === 0) {
+            simulateLocation(point.lat, point.lng);
+        }
+
+        index++;
+    }, 100); // 100ms per point
+}
+
+function stopDrive() {
+    isDriving = false;
+    if (driveInterval) {
+        clearInterval(driveInterval);
+        driveInterval = null;
+    }
+    stopBtn.style.display = 'none';
+    if (routePolyline) {
+        map.removeLayer(routePolyline);
+        routePolyline = null;
+    }
+    clearRouteProgress();
+    // Resume normal polling
     startPolling(vehicleInput.value);
+}
+
+// Terminal Logic
+async function runTerminal() {
+    const input = terminalInput.value.trim();
+    if (!input) return;
+
+    terminalOutput.textContent = '> Running...';
+
+    try {
+        // Simple parser for curl commands
+        let method = 'GET';
+        let url = '';
+        let body = null;
+
+        // Extract URL
+        const urlMatch = input.match(/http:\/\/[^\s]+/);
+        if (urlMatch) {
+            url = urlMatch[0];
+        } else {
+            throw new Error('Invalid URL. Must start with http://');
+        }
+
+        // Extract Method
+        const methodMatch = input.match(/-X\s+([A-Z]+)/);
+        if (methodMatch) {
+            method = methodMatch[1];
+        }
+
+        // Extract Body
+        const bodyMatch = input.match(/-d\s+'([^']+)'/);
+        if (bodyMatch) {
+            body = bodyMatch[1];
+        }
+
+        const options = {
+            method,
+            headers: { 'Content-Type': 'application/json' }
+        };
+
+        if (body) {
+            options.body = body;
+        }
+
+        const response = await fetch(url, options);
+        const data = await response.json();
+
+        terminalOutput.textContent = JSON.stringify(data, null, 2);
+
+        // If it was an event update, refresh UI
+        if (url.includes('/events')) {
+            if (data.status) updateUI(data.status);
+            if (data.transition) showToast(data.transition, 'info');
+        }
+
+    } catch (error) {
+        terminalOutput.textContent = `Error: ${error.message}`;
+    }
+}
+
+// Initial load
+initMap();
+// Don't start polling automatically - wait for first event
+
+vehicleInput.addEventListener('change', () => {
+    // Don't auto-start polling on input change
+    vehicleIdDisplay.textContent = vehicleInput.value;
 });
 // Taxi selection
 function selectTaxi(id) {
@@ -646,7 +840,8 @@ function selectTaxi(id) {
     if (vehicleMarker) { map.removeLayer(vehicleMarker); vehicleMarker = null; }
     vehicleIdDisplay.textContent = id;
     currentZoneDisplay.textContent = '--';
-    currentStateDisplay.textContent = '--';
-    startPolling(id);
+    currentStateDisplay.textContent = 'No data yet';
+    // Don't start polling until first event is sent
+    if (pollingInterval) clearInterval(pollingInterval);
     showToast('Selected ' + id, 'info');
 }
