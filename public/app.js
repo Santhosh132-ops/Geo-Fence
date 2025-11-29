@@ -634,7 +634,7 @@ function stopDrive() {
         routePolyline = null;
     }
     clearRouteProgress();
-    // Resume normal polling
+    console.log('Stopping drive and resuming polling...');
     startPolling(vehicleInput.value);
 }
 
