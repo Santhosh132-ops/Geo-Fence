@@ -118,12 +118,22 @@ async function fetchStatus(vehicleId) {
 
     try {
         const response = await fetch(`${API_URL}/vehicles/${vehicleId}`);
+
+        // Handle 404 - vehicle doesn't exist yet
+        if (response.status === 404) {
+            vehicleIdDisplay.textContent = vehicleId;
+            currentZoneDisplay.textContent = '--';
+            currentStateDisplay.textContent = 'No data yet';
+            return;
+        }
+
         if (response.ok) {
             const data = await response.json();
             updateUI(data);
         }
     } catch (error) {
-        console.error('Error fetching status:', error);
+        // Silently handle errors during polling
+        console.warn('Status fetch failed:', error.message);
     }
 }
 
